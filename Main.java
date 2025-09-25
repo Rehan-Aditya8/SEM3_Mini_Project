@@ -1,5 +1,7 @@
 import gui.HuffmanPanel;
 import gui.CompressionGUI;
+import gui.RLEPanel;
+import gui.LZWPanel;
 
 import javax.swing.*;
 import java.awt.*;
@@ -35,9 +37,26 @@ public class Main extends JFrame {
         add(buttonPanel, BorderLayout.CENTER);
 
         // Button actions
-        // RLE and LZW do nothing for now
-        rleButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "RLE Panel not implemented yet."));
-        lzwButton.addActionListener(e -> JOptionPane.showMessageDialog(this, "LZW Panel not implemented yet."));
+        rleButton.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+            JFrame rleFrame = new JFrame("Run Length Encoding Visualizer");
+            rleFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            rleFrame.setContentPane(new gui.RLEPanel());
+            rleFrame.pack();
+            rleFrame.setLocationRelativeTo(null);
+            rleFrame.setMinimumSize(new Dimension(600, 400));
+            rleFrame.setVisible(true);
+        }));
+
+        lzwButton.addActionListener(e -> SwingUtilities.invokeLater(() -> {
+            JFrame lzwFrame = new JFrame("LZW Compression Visualizer");
+            lzwFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            lzwFrame.setContentPane(new gui.LZWPanel());
+            lzwFrame.pack();
+            lzwFrame.setLocationRelativeTo(null);
+            lzwFrame.setMinimumSize(new Dimension(700, 450));
+            lzwFrame.setVisible(true);
+        }));
+
 
         // Huffman opens HuffmanPanel window
         huffmanButton.addActionListener(e -> SwingUtilities.invokeLater(() -> {
@@ -53,8 +72,6 @@ public class Main extends JFrame {
         // Compare All opens your CompressionGUI window
         compareAllButton.addActionListener(e -> SwingUtilities.invokeLater(() -> {
             try {
-                // Assuming CompressionGUI class exists and has a public constructor returning a JFrame or JPanel
-                // If CompressionGUI is JFrame, do this:
                 JFrame compareFrame = new CompressionGUI();
                 compareFrame.setLocationRelativeTo(null);
                 compareFrame.setVisible(true);
