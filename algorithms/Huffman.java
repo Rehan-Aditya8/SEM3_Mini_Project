@@ -37,7 +37,6 @@ public class Huffman {
             return result;
         }
 
-        // Step 1: Frequency Table
         Map<Character, Integer> freqMap = new HashMap<>();
         for (char c : text.toCharArray())
             freqMap.put(c, freqMap.getOrDefault(c, 0) + 1);

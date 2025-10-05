@@ -3,16 +3,11 @@ package gui;
 import java.util.List;
 import algorithms.Huffman.Step;
 import algorithms.Huffman.CompressResult;
-
-
 import algorithms.Huffman;
 import algorithms.HuffmanNode;
-// import algorithms.Huffman.Step;
-// import algorithms.Huffman.CompressResult;
 
 import javax.swing.*;
 import java.awt.*;
-// import java.util.*;
 import java.util.Map;
 
 @SuppressWarnings("unchecked")
@@ -26,6 +21,7 @@ public class HuffmanPanel extends JPanel {
 
     private JTextArea inputArea;
     private JButton compressButton;
+    private JButton decompressButton;
     private JCheckBox stepModeCheck;
     private JButton prevStepButton, nextStepButton;
     private JTextArea resultsArea;
@@ -41,7 +37,7 @@ public class HuffmanPanel extends JPanel {
     public HuffmanPanel() {
         setLayout(new BorderLayout(8,8));
 
-        // Input
+        // Input Panel
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputArea = new JTextArea(3, 30);
         inputArea.setLineWrap(true);
@@ -50,10 +46,12 @@ public class HuffmanPanel extends JPanel {
         inputPanel.add(new JScrollPane(inputArea), BorderLayout.CENTER);
 
         compressButton = new JButton("Compress");
+        decompressButton = new JButton("Decompress");
         stepModeCheck = new JCheckBox("Step Mode");
 
         JPanel topButtons = new JPanel();
         topButtons.add(compressButton);
+        topButtons.add(decompressButton);
         topButtons.add(stepModeCheck);
         inputPanel.add(topButtons, BorderLayout.SOUTH);
 
@@ -109,6 +107,7 @@ public class HuffmanPanel extends JPanel {
         add(southPanel, BorderLayout.SOUTH);
 
         compressButton.addActionListener(e -> performCompression());
+        decompressButton.addActionListener(e -> performDecompression());
         stepModeCheck.addActionListener(e -> toggleStepMode());
         prevStepButton.addActionListener(e -> showStep(stepIndex-1));
         nextStepButton.addActionListener(e -> showStep(stepIndex+1));
@@ -143,6 +142,17 @@ public class HuffmanPanel extends JPanel {
         }
     }
 
+    private void performDecompression() {
+        if (encoded == null || encoded.isEmpty() || root == null) {
+            resultsArea.setText("Nothing to decompress. Please compress some text first.");
+            return;
+        }
+        String decompressedText = Huffman.decompress(encoded, root);
+        resultsArea.setText("Encoded: " + encoded + "\n" +
+                            "Decoded: " + decompressedText + "\n" +
+                            "Correct Decode: " + (inputText != null && inputText.equals(decompressedText) ? "Yes" : "No") + "\n");
+    }
+
     private void toggleStepMode() {
         boolean stepMode = stepModeCheck.isSelected();
         prevStepButton.setEnabled(stepMode);
@@ -164,7 +174,6 @@ public class HuffmanPanel extends JPanel {
         // Frequency table: Keep freqMap from Step 1, and reuse always
         if (step.visual instanceof Map) {
             if (step.title.contains("Frequency Table")) {
-                // @SuppressWarnings("unchecked")
                 freqMap = (Map<Character, Integer>) step.visual;
             }
         }
@@ -216,7 +225,6 @@ public class HuffmanPanel extends JPanel {
     private void showFinalCodesAndTree() {
         if (compressResult == null) return;
 
-        // Show codes in results area
         StringBuilder sb = new StringBuilder();
         sb.append("Codes:\n");
         for (Map.Entry<Character, String> entry : codes.entrySet()) {
@@ -234,9 +242,7 @@ public class HuffmanPanel extends JPanel {
     // --- Tree Visualization ---
     private static class TreePanel extends JPanel {
         private HuffmanNode root;
-        public void setRoot(HuffmanNode root) {
-            this.root = root;
-        }
+        public void setRoot(HuffmanNode root) { this.root = root; }
 
         @Override
         protected void paintComponent(Graphics g) {
@@ -245,7 +251,6 @@ public class HuffmanPanel extends JPanel {
                 drawTree(g, root, getWidth() / 2, 30, getWidth() / 4);
             }
         }
-
         private void drawTree(Graphics g, HuffmanNode node, int x, int y, int gap) {
             if (node == null) return;
             String text = (node.ch == '\0') ? String.valueOf(node.freq) : node.ch + ":" + node.freq;
