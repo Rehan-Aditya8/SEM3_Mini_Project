@@ -1,28 +1,34 @@
 package gui;
-import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-    
-public class CompressionGUI extends JFrame {
 
+
+import java.awt.BorderLayout;
+import java.util.Comparator;
+import javax.swing.*;
+import javax.swing.table.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+// import java.awt.event.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.PriorityQueue;
+
+public class CompressionGUI extends JFrame {
     private JTextArea inputArea;
     private JTable table;
     private DefaultTableModel model;
+    private JLabel teachingLabel;
 
     public CompressionGUI() {
         setTitle("Compression Comparison");
-        setSize(800, 500);
+        setSize(850, 520);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // Main container with padding
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         add(mainPanel);
 
-        // Top panel for input
         JPanel topPanel = new JPanel(new BorderLayout(5, 5));
         JLabel inputLabel = new JLabel("Enter Text for Compression:");
         inputLabel.setFont(new Font("Arial", Font.BOLD, 14));
@@ -36,18 +42,25 @@ public class CompressionGUI extends JFrame {
 
         JButton compareButton = new JButton("Compare Compression");
         topPanel.add(compareButton, BorderLayout.EAST);
-
         mainPanel.add(topPanel, BorderLayout.NORTH);
 
-        // Table panel
-        String[] columns = {"Algorithm", "Original Size", "Compressed Size", "Ratio"};
+        String[] columns = {"Algorithm", "Original Size (bytes)", "Compressed Size (bytes)", "Compression Ratio (%)"};
         model = new DefaultTableModel(columns, 0);
-        table = new JTable(model);
+        table = new JTable(model) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
         table.setFillsViewportHeight(true);
+        table.setRowHeight(28);
         JScrollPane tableScroll = new JScrollPane(table);
         mainPanel.add(tableScroll, BorderLayout.CENTER);
 
-        // Action listener
+        table.setDefaultRenderer(Object.class, new TableCellRendererImpl());
+
+        teachingLabel = new JLabel();
+        teachingLabel.setFont(new Font("Arial", Font.ITALIC, 14));
+        teachingLabel.setBorder(BorderFactory.createEmptyBorder(12,0,0,0));
+        mainPanel.add(teachingLabel, BorderLayout.SOUTH);
+
         compareButton.addActionListener(e -> compareCompression());
     }
 
@@ -58,21 +71,44 @@ public class CompressionGUI extends JFrame {
             return;
         }
 
-        int originalSize = text.length() * 8; // assume 1 char = 8 bits
+        int originalSize = text.getBytes().length; // bytes
         model.setRowCount(0);
 
+        // RLE
         String rle = compressRLE(text);
-        int rleSize = rle.length() * 8;
-        model.addRow(new Object[]{"RLE", originalSize + " bits", rleSize + " bits",
-                (rleSize * 100 / originalSize) + "%"});
+        int rleSize = rle.getBytes().length;
+        double rleRatio = originalSize == 0 ? 0 : (100.0 * rleSize / originalSize);
+        model.addRow(new Object[]{"RLE", originalSize, rleSize, String.format("%.1f", rleRatio)});
 
-        int huffSize = compressHuffman(text);
-        model.addRow(new Object[]{"Huffman", originalSize + " bits", huffSize + " bits",
-                (huffSize * 100 / originalSize) + "%"});
+        // Huffman
+        int huffBits = compressHuffman(text);
+        int huffSize = (huffBits + 7) / 8;
+        double huffRatio = originalSize == 0 ? 0 : (100.0 * huffSize / originalSize);
+        model.addRow(new Object[]{"Huffman", originalSize, huffSize, String.format("%.1f", huffRatio)});
 
-        int lzwSize = compressLZW(text);
-        model.addRow(new Object[]{"LZW", originalSize + " bits", lzwSize + " bits",
-                (lzwSize * 100 / originalSize) + "%"});
+        // LZW
+        int lzwBits = compressLZW(text);
+        int lzwSize = (lzwBits + 7) / 8;
+        double lzwRatio = originalSize == 0 ? 0 : (100.0 * lzwSize / originalSize);
+        model.addRow(new Object[]{"LZW", originalSize, lzwSize, String.format("%.1f", lzwRatio)});
+
+        int bestRow = 0, worstRow = 0;
+        double best = Double.MAX_VALUE, worst = -1;
+        for (int i = 0; i < 3; i++) {
+            double ratio = Double.parseDouble((String)model.getValueAt(i, 3));
+            if (ratio < best) { best = ratio; bestRow = i; }
+            if (ratio > worst) { worst = ratio; worstRow = i; }
+        }
+        TableCellRendererImpl.bestRow = bestRow;
+        TableCellRendererImpl.worstRow = worstRow;
+        table.repaint();
+
+        teachingLabel.setText(
+            "<html>"
+            + "<b>RLE:</b> Efficient for text with repeated characters. &nbsp; &nbsp; "
+            + "<b>Huffman:</b> Best when character frequencies vary. &nbsp; &nbsp; "
+            + "<b>LZW:</b> Suited for text with repeated patterns or dictionary words."
+            + "</html>");
     }
 
     private String compressRLE(String text) {
@@ -91,14 +127,13 @@ public class CompressionGUI extends JFrame {
 
     private int compressHuffman(String text) {
         Map<Character, Integer> freq = new HashMap<>();
-        for (char c : text.toCharArray()) {
+        for (char c : text.toCharArray())
             freq.put(c, freq.getOrDefault(c, 0) + 1);
-        }
 
         PriorityQueue<Node> pq = new PriorityQueue<>(Comparator.comparingInt(n -> n.freq));
-        for (var entry : freq.entrySet()) {
+        for (var entry : freq.entrySet())
             pq.add(new Node(entry.getKey(), entry.getValue()));
-        }
+        if (pq.size() == 1) pq.add(new Node('\0', 1));
 
         while (pq.size() > 1) {
             Node a = pq.poll(), b = pq.poll();
@@ -109,9 +144,9 @@ public class CompressionGUI extends JFrame {
         buildCodes(pq.peek(), "", codes);
 
         int bits = 0;
-        for (char c : text.toCharArray()) {
+        for (char c : text.toCharArray())
             bits += codes.get(c).length();
-        }
+
         return bits;
     }
 
@@ -136,10 +171,11 @@ public class CompressionGUI extends JFrame {
 
     private int compressLZW(String text) {
         Map<String, Integer> dict = new HashMap<>();
-        for (int i = 0; i < 256; i++) dict.put("" + (char)i, i);
+        for (int i = 0; i < 256; i++)
+            dict.put("" + (char) i, i);
 
         String w = "";
-        java.util.List<Integer> result = new ArrayList<>();
+        java.util.List<Integer> result = new java.util.ArrayList<>();
         int dictSize = 256;
 
         for (char c : text.toCharArray()) {
@@ -154,7 +190,26 @@ public class CompressionGUI extends JFrame {
         }
         if (!w.isEmpty()) result.add(dict.get(w));
 
-        return result.size() * 12; // assume fixed 12-bit codes
+        return result.size() * 12;
+    }
+
+    static class TableCellRendererImpl extends DefaultTableCellRenderer {
+        static int bestRow = 0;
+        static int worstRow = 0;
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            if (row == bestRow) {
+                c.setBackground(new Color(198, 239, 206)); // green
+            } else if (row == worstRow) {
+                c.setBackground(new Color(255, 199, 206)); // red
+            } else {
+                c.setBackground(Color.white);
+            }
+            setHorizontalAlignment(CENTER);
+            return c;
+        }
     }
 
     public static void main(String[] args) {
