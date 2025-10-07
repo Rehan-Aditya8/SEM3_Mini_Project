@@ -6,15 +6,15 @@ public class LZW {
 
     // Teaching step class
     public static class TeachingStep {
-        public int inputPos;            // Current position in input
-        public String processedPart;    // Text already output (coded)
-        public String currentW;         // Current matched substring w
-        public String currentC;         // Current next char c
-        public String newEntry;         // New entry added to dictionary (if any)
-        public int codeOutput;          // Code output this step, -1 no output
+        public int inputPos;                // Current position in input
+        public String processedPart;        // Text already output (coded)
+        public String currentW;             // Current matched substring w
+        public String currentC;             // Current next char c
+        public String newEntry;             // New entry added to dictionary (if any)
+        public int codeOutput;              // Code output this step, -1 no output
         public LinkedHashMap<String,Integer> addedEntries; // Entries added this step
-        public List<Integer> outputCodes;  // Output codes so far
-        public String explanation;      // Text explanation for this step
+        public List<Integer> outputCodes;   // Output codes so far
+        public String explanation;          // Text explanation for this step
     }
 
     public static class TeachingResult {
@@ -30,11 +30,11 @@ public class LZW {
         result.compressed = new ArrayList<>();
         result.input = input;
 
-        // Start dictionary with ASCII printed characters only (32..126)
+        // Start dictionary with ASCII 0..255 (standard)
         LinkedHashMap<String,Integer> dictionary = new LinkedHashMap<>();
-        int dictSize = 0;
-        for (int i = 32; i <= 126; i++) {
-            dictionary.put("" + (char) i, dictSize++);
+        int dictSize = 256;
+        for (int i = 0; i < 256; i++) {
+            dictionary.put("" + (char) i, i);
         }
 
         String w = "";
@@ -46,7 +46,7 @@ public class LZW {
             String wc = w + c;
             TeachingStep step = new TeachingStep();
             step.inputPos = pos;
-            step.processedPart = input.substring(0, pos - w.length());
+            step.processedPart = input.substring(0, pos - w.length() + Math.max(0, w.length()));
             step.currentW = w;
             step.currentC = String.valueOf(c);
             step.outputCodes = new ArrayList<>(output);

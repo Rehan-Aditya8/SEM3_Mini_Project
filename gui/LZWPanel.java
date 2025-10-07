@@ -137,6 +137,12 @@ public class LZWPanel extends JPanel {
             prevStepButton.setEnabled(teaching && teachingStepIdx > 0 && teachingSteps != null && teachingSteps.size() > 0);
             teachingExplainArea.setVisible(teaching);
             dictScroll.setVisible(teaching);
+            if (!teaching) {
+                compressedArea.setText("");
+                decompressedArea.setText("");
+                dictTableModel.setRowCount(0);
+                teachingExplainArea.setText("");
+            }
         });
         nextStepButton.addActionListener(e -> showTeachingStep(teachingStepIdx + 1));
         prevStepButton.addActionListener(e -> showTeachingStep(teachingStepIdx - 1));
